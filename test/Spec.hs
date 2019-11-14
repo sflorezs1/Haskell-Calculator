@@ -1,2 +1,4 @@
+import Parser
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = print (parse "1+(2-5)+3")
