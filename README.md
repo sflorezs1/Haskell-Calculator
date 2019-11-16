@@ -18,3 +18,5 @@
 - cos (Ca, where a is an angle)
 - decisions (a ? b : c, where a is a boolean expression [n < m, for instance] and b, c are normal expressions)
 - cicles ([initial; final; step; expression])
+
+### Example of a valid expression: [(8>7?5:4);<S90*8;(188+167)^0;[1;<5;1;4+8]]
