@@ -4,7 +4,6 @@ module Parser where
     import Data.Maybe
     import Data.List
     import Data.Fixed
-    import Debug.Trace
 
     degrees :: Double -> Double
     degrees x = (x*pi)/180
@@ -16,7 +15,7 @@ module Parser where
         |operator == ">" = a > b
         |operator == ">=" = a >= b
         |operator == "==" = a == b
-        |otherwise = error (trace ("Op: " ++ operator) "Not a logic operator")
+        |otherwise = error "Not a logic operator"
 
     findString :: (Eq a) => [a] -> [a] -> Int
     findString search str = fromMaybe (-1) $ findIndex (isPrefixOf search) (tails str)
@@ -113,10 +112,10 @@ module Parser where
             idx1 = findString ";" expression
             idx2 = findString ";" (drop (idx1 + 1) expression) + idx1 + 1
             idx3 = findString ";" (drop (idx2 + 1) expression) + idx2 + 1
-            initial = trace ("initial: " ++ take idx1 expression) $ parse $ take idx1 expression
-            condition = trace ("condition: " ++ drop (idx1 + 2) (take idx2 expression)) parse $ drop (idx1 + 2) $ take idx2 expression
-            variation = trace ("variation: " ++ drop (idx2 + 1) (take idx3 expression)) $ parse $ drop (idx2 + 1) $ take idx3 expression
-            expr = trace ("expr: " ++ drop (idx3 + 1) expression) $ parse $ drop (idx3 + 1) expression
+            initial = parse $ take idx1 expression
+            condition = parse $ drop (idx1 + 2) $ take idx2 expression
+            variation = parse $ drop (idx2 + 1) $ take idx3 expression
+            expr = parse $ drop (idx3 + 1) expression
             operator
                 | (expression !! (idx1 + 1)) == '=' = '=' : expression !! (idx1 + 2) : "" 
                 | otherwise = expression !! (idx1 + 1) : ""
@@ -183,6 +182,6 @@ module Parser where
 
     parseNumber :: String -> Double
     parseNumber expression
-        |number < 1e-4 = 0
+        |number < 1e-4 && number > -1e-4 = 0
         |otherwise = number
         where number = read expression :: Double
