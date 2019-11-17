@@ -1,10 +1,10 @@
 # Calculator
 ## Made by:
-#### Simon Florez (sflorezs1) and Julian Bueno (jdbuenol)
+Simon Florez (sflorezs1) and Julian Bueno (jdbuenol)
 ## How to use
-#### Install all dependences: Data.List.Split (stack install split)
-#### Load src/Main.hs in ghci
-#### Write an expression
+- Install all dependences: Data.List.Split (stack install split)
+- Load src/Main.hs in ghci
+- Write an expression
 ## Valid Expressions
 ### The calculator can do:
 - addition (m + n)
