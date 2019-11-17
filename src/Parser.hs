@@ -52,8 +52,6 @@ module Parser where
         |'[' `elem` expression = parseGrouping expression '[' ']'
         |';' `elem` expression = parseLoop expression
         |'?' `elem` expression = parseIf expression
-        |'C' `elem` expression = parseCosine expression
-        |'S' `elem` expression = parseSine expression
         |findString "*-" expression /= -1 = parseOpMinus expression "*-"
         |findString "/-" expression /= -1 = parseOpMinus expression "/-"
         |findString "%-" expression /= -1 = parseOpMinus expression "%-"
@@ -64,6 +62,8 @@ module Parser where
         |'/' `elem` expression = parseDivide expression
         |'%' `elem` expression = parseMod expression 
         |'^' `elem` expression = parsePower expression
+        |'C' `elem` expression = parseCosine expression
+        |'S' `elem` expression = parseSine expression
         |otherwise = error ("Parse Error: Unrecognized Operator in expression {" ++ expression ++ "}")
     
     parseGrouping :: String -> Char -> Char -> Double
@@ -125,26 +125,14 @@ module Parser where
                 |otherwise = expression
 
     parseSine :: String -> Double
-    parseSine expression = do
-        let before = take idxS expression
-        let after = drop idxOp expression
-        let number = show $ sin (degrees (parse (take (idxOp - idxS - 1) (drop (idxS + 1) expression))))
-        let ret = parse (before ++ number ++ after)
-        ret
+    parseSine expression = sin $ degrees $ parse $ drop (idxS + 1) expression
         where
             idxS = findString "S" expression
-            idxOp = findOpr (drop (idxS + 1) expression) "+-*/(){}[]%^SC"  (idxS + 1)
 
     parseCosine :: String -> Double
-    parseCosine expression = do
-        let before = take idxC expression
-        let after = drop idxOp expression
-        let number = show $ cos (degrees (parse (take (idxOp - idxC - 1) (drop (idxC + 1) expression))))
-        let ret = parse (before ++ number ++ after)
-        ret
+    parseCosine expression = cos $ degrees $ parse $ drop (idxS + 1) expression
         where
-            idxC = findString "C" expression
-            idxOp = findOpr (drop (idxC + 1) expression) "+-*/(){}[]%^SC" (idxC + 1)
+            idxS = findString "C" expression
             
     parseOpMinus :: String -> String -> Double
     parseOpMinus expression operator = op (parse (take place expression)) (parse (drop (place + 2) expression))
