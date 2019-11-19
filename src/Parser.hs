@@ -4,6 +4,7 @@ module Parser where
     import Data.Maybe
     import Data.List
     import Data.Fixed
+    import Debug.Trace
 
     degrees :: Double -> Double
     degrees x = (x*pi)/180
@@ -28,9 +29,9 @@ module Parser where
 
     findOpr :: String -> String-> Int -> Int
     findOpr "" _ i = i
-    findOpr str operators i
-        |head str `elem` operators = i
-        |otherwise = findOpr (tail str) operators (i + 1)
+    findOpr (x:xs) operators i
+        |x `elem` operators = i
+        |otherwise = findOpr xs operators (i + 1)
 
     isInteger :: String -> Bool
     isInteger s = case reads s :: [(Integer, String)] of
@@ -48,44 +49,35 @@ module Parser where
     parse :: String -> Double
     parse expression
         |isNumeric expression = parseNumber expression
-        |'(' `elem` expression = parseGrouping expression '(' ')'
-        |'[' `elem` expression = parseGrouping expression '[' ']'
+        |'(' `elem` expression = parseGrouping expression "(" ")"
+        |'[' `elem` expression = parseGrouping expression "[" "]"
         |';' `elem` expression = parseLoop expression
         |'?' `elem` expression = parseIf expression
         |findString "*-" expression /= -1 = parseOpMinus expression "*-"
         |findString "/-" expression /= -1 = parseOpMinus expression "/-"
         |findString "%-" expression /= -1 = parseOpMinus expression "%-"
         |findString "^-" expression /= -1 = parseOpMinus expression "^-"
-        |'+' `elem` expression = parseSum expression
-        |'-' `elem` expression = parseRest expression
-        |'*' `elem` expression = parseTimes expression
-        |'/' `elem` expression = parseDivide expression
-        |'%' `elem` expression = parseMod expression 
+        |'+' `elem` expression = parseDual expression "+" (+)
+        |'-' `elem` expression = parseDual expression "-" (-)
+        |'*' `elem` expression = parseTri expression "*" (*)
+        |'/' `elem` expression = parseTri expression "/" (/) 
+        |'%' `elem` expression = parseTri expression "%" mod'
         |'^' `elem` expression = parsePower expression
-        |'C' `elem` expression = parseCosine expression
-        |'S' `elem` expression = parseSine expression
+        |findString "Cos" expression /= -1 = parseTrigonometrics expression "Cos" cos
+        |findString "Sin" expression /= -1 = parseTrigonometrics expression "Sin" sin
+        |findString "Tan" expression /= -1 = parseTrigonometrics expression "Tan" tan
+        |findString "Sinh" expression /= -1 = parseTrigonometrics expression "Sinh" sinh
+        |findString "Cosh" expression /= -1 = parseTrigonometrics expression "Cosh" cosh
+        |findString "Ln" expression /= -1 = parseMathFunc expression "Ln" log
         |otherwise = error ("Parse Error: Unrecognized Operator in expression {" ++ expression ++ "}")
     
-    parseGrouping :: String -> Char -> Char -> Double
-    parseGrouping expression grouperOpener grouperCloser = do
-        let idxOpen = openParen expression 0 0
-        let idxClose = closeParen (drop idxOpen expression) idxOpen
-        let prev = take idxOpen expression
-        let next = drop (idxClose + 1) expression
-        let mid = show (parse (take (idxClose - idxOpen - 1) (drop (idxOpen + 1) expression)))
-        let ret = parse (prev ++ mid ++ next)
-        ret
-        where 
-            openParen :: String -> Int -> Int -> Int
-            openParen [] i _ = i
-            openParen str i j
-                |head str == grouperOpener = openParen (tail str) j (j + 1) 
-                |otherwise = openParen (tail str) i (j + 1)
-            closeParen :: String -> Int -> Int
-            closeParen [] j = j
-            closeParen str j
-                |head str == grouperCloser = j
-                |otherwise = closeParen (tail str) (j + 1)
+    parseGrouping :: String -> String -> String -> Double
+    parseGrouping expression grouperOpener grouperCloser = parse $ prev ++ show (parse (drop (idxOpen + 1) (take idxClose expression))) ++ next
+        where
+            prev = take idxOpen expression
+            next = drop (idxClose + 1) expression
+            idxOpen = findOpl expression grouperOpener $ fromIntegral $ length expression - 1
+            idxClose = findOpr (drop idxOpen expression) grouperCloser idxOpen
 
     parseIf :: String -> Double
     parseIf expression
@@ -105,9 +97,7 @@ module Parser where
             exprElse = drop (idxThen + 1) expression
 
     parseLoop :: String -> Double
-    parseLoop expression = do
-        let ret = loop initial condition variation expr - expr
-        ret
+    parseLoop expression = loop initial condition variation expr
         where
             idx1 = findString ";" expression
             idx2 = findString ";" (drop (idx1 + 1) expression) + idx1 + 1
@@ -122,18 +112,19 @@ module Parser where
             loop :: Double -> Double -> Double -> Double -> Double
             loop initial condition variation expression
                 |doLogic initial condition operator = expression + loop (initial + variation) condition variation expression
-                |otherwise = expression
+                |otherwise = 0
 
-    parseSine :: String -> Double
-    parseSine expression = sin $ degrees $ parse $ drop (idxS + 1) expression
-        where
-            idxS = findString "S" expression
 
-    parseCosine :: String -> Double
-    parseCosine expression = cos $ degrees $ parse $ drop (idxS + 1) expression
+    parseTrigonometrics :: String -> String -> (Double -> Double) -> Double
+    parseTrigonometrics expression opS op = op $ degrees $ parse $ drop idx expression
         where
-            idxS = findString "C" expression
-            
+            idx = fromIntegral $ length opS + findString opS expression
+
+    parseMathFunc :: String -> String -> (Double -> Double) -> Double
+    parseMathFunc expression opS op = op $ parse $ drop idx expression
+        where
+            idx = fromIntegral $ length opS + findString opS expression
+
     parseOpMinus :: String -> String -> Double
     parseOpMinus expression operator = op (parse (take place expression)) (parse (drop (place + 2) expression))
         where place = findString operator expression
@@ -144,32 +135,20 @@ module Parser where
                 |operator == "%-" = num1 `mod'` (num2 * (-1))
                 |operator == "^-" = num1 ** ((-1) * num2)
 
-    parseSum :: String -> Double
-    parseSum expression = do
-        let splitted = splitOn "+" expression
-        if head splitted == "" then sum (map parse (tail splitted))
-        else sum (map parse splitted)
+    parseDual :: String -> String -> (Double -> Double -> Double) -> Double
+    parseDual expression opS op = do
+        let splitted = splitOn opS expression
+        if head splitted == "" then foldl op 0 (map parse (tail splitted))
+        else foldr (op . parse) 0 splitted
 
-    parseRest :: String -> Double
-    parseRest expression = do
-        let splitted = splitOn "-" expression
-        if head splitted == "" then foldl (-) 0 (map parse (tail splitted))
-        else foldr ((-) . parse) 0 splitted
-
-    parseTimes :: String -> Double
-    parseTimes expression = product (map parse (splitOn "*" expression))
-    
-    parseDivide :: String -> Double
-    parseDivide expression = foldr ((/) . parse) 1 (splitOn "/" expression)
-
-    parseMod :: String -> Double
-    parseMod expression = foldl mod' 0 (map parse $splitOn "%" expression)
+    parseTri :: String -> String -> (Double -> Double -> Double) -> Double
+    parseTri expression opS op = foldl op 1 (map parse $splitOn opS expression)
 
     parsePower :: String -> Double
     parsePower expression = foldr ((**) . parse) 1 (splitOn "^" expression)
 
     parseNumber :: String -> Double
     parseNumber expression
-        |number < 1e-4 && number > -1e-4 = 0
+        |number < 1e-7 && number > -1e-7 = 0
         |otherwise = number
         where number = read expression :: Double
