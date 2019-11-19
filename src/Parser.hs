@@ -63,21 +63,21 @@ module Parser where
         |'/' `elem` expression = parseTri expression "/" (/) 
         |'%' `elem` expression = parseTri expression "%" mod'
         |'^' `elem` expression = parsePower expression
+        |findString "Sinh" expression /= -1 = parseTrigonometrics expression "Sinh" sinh
+        |findString "Cosh" expression /= -1 = parseTrigonometrics expression "Cosh" cosh
         |findString "Cos" expression /= -1 = parseTrigonometrics expression "Cos" cos
         |findString "Sin" expression /= -1 = parseTrigonometrics expression "Sin" sin
         |findString "Tan" expression /= -1 = parseTrigonometrics expression "Tan" tan
-        |findString "Sinh" expression /= -1 = parseTrigonometrics expression "Sinh" sinh
-        |findString "Cosh" expression /= -1 = parseTrigonometrics expression "Cosh" cosh
         |findString "Ln" expression /= -1 = parseMathFunc expression "Ln" log
         |otherwise = error ("Parse Error: Unrecognized Operator in expression {" ++ expression ++ "}")
     
     parseGrouping :: String -> String -> String -> Double
-    parseGrouping expression grouperOpener grouperCloser = parse $ prev ++ show (parse (drop (idxOpen + 1) (take idxClose expression))) ++ next
+    parseGrouping expression groupOpener groupCloser = parse $ prev ++ show (parse (drop (idxOpen + 1) (take idxClose expression))) ++ next
         where
             prev = take idxOpen expression
             next = drop (idxClose + 1) expression
-            idxOpen = findOpl expression grouperOpener $ fromIntegral $ length expression - 1
-            idxClose = findOpr (drop idxOpen expression) grouperCloser idxOpen
+            idxOpen = findOpl expression groupOpener $ fromIntegral $ length expression - 1
+            idxClose = findOpr (drop idxOpen expression) groupCloser idxOpen
 
     parseIf :: String -> Double
     parseIf expression
