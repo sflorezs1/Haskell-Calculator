@@ -4,9 +4,17 @@ module Parser where
     import Data.Maybe
     import Data.List
     import Data.Fixed
+    import Debug.Trace
 
     degrees :: Double -> Double
     degrees x = (x*pi)/180
+
+    replace :: (Eq a) => [a] -> [a] -> [a] -> [a]
+    replace old new list
+        |length old > length list = list
+        |old == new = list
+        |take (length old) list == old = new ++ replace old new (drop (length old) list)
+        |otherwise = head list : replace old new (tail list)
 
     doLogic :: Double -> Double -> String -> Bool
     doLogic a b operator
@@ -46,7 +54,7 @@ module Parser where
     isNumeric s = isInteger s || isDouble s
         
     parse :: String -> Double
-    parse expression
+    parse expr
         |isNumeric expression = parseNumber expression
         |'(' `elem` expression = parseGrouping expression "(" ")"
         |'[' `elem` expression = parseGrouping expression "[" "]"
@@ -69,7 +77,8 @@ module Parser where
         |findString "Tan" expression /= -1 = parseMathFunc expression "Tan" (tan . degrees)
         |findString "Ln" expression /= -1 = parseMathFunc expression "Ln" log
         |otherwise = error ("Parse Error: Unrecognized Operator in expression {" ++ expression ++ "}")
-    
+        where expression = replace "--" "+" expr
+
     parseGrouping :: String -> String -> String -> Double
     parseGrouping expression groupOpener groupCloser = parse $ prev ++ show (parse (drop (idxOpen + 1) (take idxClose expression))) ++ next
         where
@@ -137,11 +146,7 @@ module Parser where
             
 
     parseBasic :: String -> String -> Double -> (Double -> Double -> Double) -> Double
-    parseBasic expression opS baseCase op = foldl op baseCase $ map parse altered
-        where altered
-                |head splitted == "" = show baseCase : tail splitted
-                |otherwise = splitted
-                where splitted = splitOn opS expression
+    parseBasic expression opS baseCase op = foldl op baseCase $ map parse $ replace [""] [show baseCase] (splitOn opS expression)
 
     parsePower :: String -> Double
     parsePower expression = foldr ((**) . parse) 1 (splitOn "^" expression)
