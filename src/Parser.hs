@@ -63,11 +63,11 @@ module Parser where
         |'/' `elem` expression = parseTri expression "/" (/) 
         |'%' `elem` expression = parseTri expression "%" mod'
         |'^' `elem` expression = parsePower expression
-        |findString "Sinh" expression /= -1 = parseTrigonometrics expression "Sinh" sinh
-        |findString "Cosh" expression /= -1 = parseTrigonometrics expression "Cosh" cosh
-        |findString "Cos" expression /= -1 = parseTrigonometrics expression "Cos" cos
-        |findString "Sin" expression /= -1 = parseTrigonometrics expression "Sin" sin
-        |findString "Tan" expression /= -1 = parseTrigonometrics expression "Tan" tan
+        |findString "Sinh" expression /= -1 = parseMathFunc expression "Sinh" (sinh . degrees)
+        |findString "Cosh" expression /= -1 = parseMathFunc expression "Cosh" (cosh . degrees)
+        |findString "Cos" expression /= -1 = parseMathFunc expression "Cos" (cos . degrees)
+        |findString "Sin" expression /= -1 = parseMathFunc expression "Sin" (sin . degrees)
+        |findString "Tan" expression /= -1 = parseMathFunc expression "Tan" (tan . degrees)
         |findString "Ln" expression /= -1 = parseMathFunc expression "Ln" log
         |otherwise = error ("Parse Error: Unrecognized Operator in expression {" ++ expression ++ "}")
     
@@ -113,12 +113,6 @@ module Parser where
             loop initial condition variation expression
                 |doLogic initial condition operator = expression + loop (initial + variation) condition variation expression
                 |otherwise = 0
-
-
-    parseTrigonometrics :: String -> String -> (Double -> Double) -> Double
-    parseTrigonometrics expression opS op = op $ degrees $ parse $ drop idx expression
-        where
-            idx = fromIntegral $ length opS + findString opS expression
 
     parseMathFunc :: String -> String -> (Double -> Double) -> Double
     parseMathFunc expression opS op = op $ parse $ drop idx expression
