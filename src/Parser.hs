@@ -57,11 +57,11 @@ module Parser where
         |findString "/-" expression /= -1 = parseOpMinus expression "/-"
         |findString "%-" expression /= -1 = parseOpMinus expression "%-"
         |findString "^-" expression /= -1 = parseOpMinus expression "^-"
-        |'+' `elem` expression = parseDual expression "+" (+)
-        |'-' `elem` expression = parseDual expression "-" (-)
-        |'*' `elem` expression = parseTri expression "*" (*)
-        |'/' `elem` expression = parseTri expression "/" (/) 
-        |'%' `elem` expression = parseTri expression "%" mod'
+        |'+' `elem` expression = parseBasic expression "+" 0 (+)
+        |'-' `elem` expression = parseBasic expression "-" 0 (-)
+        |'*' `elem` expression = parseBasic expression "*" 1 (*)
+        |'/' `elem` expression = parseBasic expression "/" 1 (/) 
+        |'%' `elem` expression = parseBasic expression "%" 1 mod'
         |'^' `elem` expression = parsePower expression
         |findString "Sinh" expression /= -1 = parseMathFunc expression "Sinh" (sinh . degrees)
         |findString "Cosh" expression /= -1 = parseMathFunc expression "Cosh" (cosh . degrees)
@@ -129,14 +129,11 @@ module Parser where
                 |operator == "%-" = num1 `mod'` (num2 * (-1))
                 |operator == "^-" = num1 ** ((-1) * num2)
 
-    parseDual :: String -> String -> (Double -> Double -> Double) -> Double
-    parseDual expression opS op = do
-        let splitted = splitOn opS expression
-        if head splitted == "" then foldl op 0 (map parse (tail splitted))
-        else foldr (op . parse) 0 splitted
-
-    parseTri :: String -> String -> (Double -> Double -> Double) -> Double
-    parseTri expression opS op = foldl op 1 (map parse $splitOn opS expression)
+    parseBasic :: String -> String -> Double -> (Double -> Double -> Double) -> Double
+    parseBasic expression opS baseCase op = foldl op baseCase $ map parse altered
+        where altered
+                |head $ splitOn opS expression == "" = show baseCase : tail splitted
+                |otherwise = splitOn opS expression
 
     parsePower :: String -> Double
     parsePower expression = foldr ((**) . parse) 1 (splitOn "^" expression)
