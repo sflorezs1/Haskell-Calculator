@@ -4,7 +4,6 @@ module Parser where
     import Data.Maybe
     import Data.List
     import Data.Fixed
-    import Debug.Trace
 
     degrees :: Double -> Double
     degrees x = (x*pi)/180
@@ -120,20 +119,29 @@ module Parser where
             idx = fromIntegral $ length opS + findString opS expression
 
     parseOpMinus :: String -> String -> Double
-    parseOpMinus expression operator = op (parse (take place expression)) (parse (drop (place + 2) expression))
-        where place = findString operator expression
-              op :: Double -> Double -> Double
-              op num1 num2
+    parseOpMinus expression operator = parse $ prev ++ show (op num1 num2) ++ next
+        where 
+            place = findString operator expression
+            idxLeft = findOpl (take place expression) "+-*/()[]%^" (fromIntegral $ length (take place expression) - 1)  
+            idxRight = findOpr (drop (place + 2) expression) "+-*/()[]%^" $ place + 2
+            num1 = parse $ drop (idxLeft + 1) $ take place expression
+            num2 = parse $ drop (place + 2) $ take idxRight expression
+            prev = take (idxLeft + 1) expression
+            next = drop idxRight expression 
+            op :: Double -> Double -> Double
+            op num1 num2
                 |operator == "*-" = num1 * (-1) * num2 
                 |operator == "/-" = num1 / num2 * (-1) 
                 |operator == "%-" = num1 `mod'` (num2 * (-1))
                 |operator == "^-" = num1 ** ((-1) * num2)
+            
 
     parseBasic :: String -> String -> Double -> (Double -> Double -> Double) -> Double
     parseBasic expression opS baseCase op = foldl op baseCase $ map parse altered
         where altered
-                |head $ splitOn opS expression == "" = show baseCase : tail splitted
-                |otherwise = splitOn opS expression
+                |head splitted == "" = show baseCase : tail splitted
+                |otherwise = splitted
+                where splitted = splitOn opS expression
 
     parsePower :: String -> Double
     parsePower expression = foldr ((**) . parse) 1 (splitOn "^" expression)
